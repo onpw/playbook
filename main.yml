@@ -1,0 +1,83 @@
+- name: Hello World Sample
+  hosts: all
+  tasks:
+    - name: Hello Message
+      debug:
+        msg: "Hello World!"
+      tags:
+        - test
+
+    - name: Add the user 'sysadmin' for sysadmin user
+      user:
+        name: sysadmin
+        shell: /bin/bash
+      tags:
+        - basic
+
+    - name: Add the user 'dev' for normal user
+      user:
+        name: dev
+        shell: /bin/bash
+      tags:
+        - basic
+        
+    - name: Add the user 'sysadmin' to sudo group privileges
+      user:
+        name: sysadmin
+        shell: /bin/bash
+        groups: sudo
+        append: yes
+      tags:
+        - basic
+
+    - name: typing sudo without verify password 
+      lineinfile:
+        path: /etc/sudoers
+        state: present
+        regexp: '^%sudo'
+        line: '%sudo ALL=(ALL) NOPASSWD: ALL'
+        validate: 'visudo -cf %s'
+      tags:
+        - basic
+
+    - name: Download file with check (sha256)
+      get_url:
+        url: https://github.com/prometheus/node_exporter/releases/download/v1.0.1/node_exporter-1.0.1.linux-amd64.tar.gz
+        dest: /opt/
+        checksum: sha256:3369b76cd2b0ba678b6d618deab320e565c3d93ccb5c2a0d5db51a53857768ae
+      tags:
+        - monitor
+
+    - name: Unarchive a file that is already on the remote machine
+      unarchive:
+        src: /opt/node_exporter-1.0.1.linux-amd64.tar.gz
+        dest: /opt/
+        remote_src: yes
+      tags:
+        - monitor
+
+    - name: Download file
+      get_url:
+        url: https://gitlab.safedata.vn/root/documentation/-/raw/master/downloads/node_exporter.service
+        dest: /etc/systemd/system/
+      tags:
+        - monitor
+
+    - name: Add the user 'prometheus' for monitoring
+      user:
+        name: prometheus
+        shell: /sbin/nologin
+      tags:
+        - monitor
+
+    - name: Restart service node_exporter, in all cases
+      service:
+        name: node_exporter
+        state: restarted
+      tags:
+        - monitor
+      
+    - name: Wait for port 9100 to become open on the host, don't start checking for 10 seconds
+      wait_for:
+        port: 9100
+        delay: 10
